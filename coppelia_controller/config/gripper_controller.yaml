@@ -1,0 +1,9 @@
+gripper_controller:
+  ros__parameters:
+    joint: robotiq_85_left_knuckle_joint
+    command_interfaces:
+      - position
+      - velocity
+    state_interfaces:
+      - position
+      - velocity

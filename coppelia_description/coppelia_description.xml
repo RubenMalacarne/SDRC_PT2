@@ -1,0 +1,9 @@
+<library path="coppelia_description">
+  <class name="coppelia_description/CoppeliaSimHardwareInterface"
+         type="coppelia_description::CoppeliaSimHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Implementazione custom dell'hardware interface per CoppeliaSim
+    </description>
+  </class>
+</library>
