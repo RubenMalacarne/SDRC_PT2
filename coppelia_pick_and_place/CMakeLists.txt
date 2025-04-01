@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.10)
-cmake_policy(SET CMP0167 NEW)
 project(coppelia_pick_and_place)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -42,8 +41,28 @@ rclcpp_components_register_node(test_action_server
   EXECUTABLE test_action_server_node
 )
 
+# Motion Action Server
+add_library(motion_action_server SHARED src/motion_action_server.cpp)
+target_include_directories(motion_action_server PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_definitions(motion_action_server
+  PRIVATE "TASK_SERVER_CPP_BUILDING_DLL")
+ament_target_dependencies(motion_action_server
+  "coppelia_msgs"
+  "rclcpp"
+  "rclcpp_action"
+  "rclcpp_components"
+  "moveit_ros_planning_interface")
+rclcpp_components_register_node(motion_action_server 
+  PLUGIN "coppelia_pick_and_place::TestActionServer" 
+  EXECUTABLE motion_action_server_node
+)
+
 # Install the library
-install(TARGETS test_action_server
+install(TARGETS 
+  test_action_server
+  motion_action_server
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
