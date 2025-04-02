@@ -12,7 +12,7 @@
     <xacro:ur5e_with_robotiq85_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
 
     <!-- Lab Table -->
-    <link name="lab_table">
+    <!-- <link name="lab_table">
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
@@ -36,6 +36,6 @@
         <parent link="world" />
         <child link="lab_table" />
         <origin xyz="0 0 0" rpy="0 0 0" />
-    </joint>
+    </joint> -->
 
 </robot>

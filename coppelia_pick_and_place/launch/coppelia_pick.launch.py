@@ -36,7 +36,7 @@ def generate_launch_description():
     
     motion_action_server = Node(
         package="coppelia_pick_and_place",
-        executable="motion_action_server_node",
+        executable="move_action_node",
         parameters=[    
             moveit_config.to_dict(),
             {"use_sim_time": is_sim}]
