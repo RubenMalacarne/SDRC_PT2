@@ -1,0 +1,20 @@
+✔️ : nome ""nome_del_check"
+❌ : error "nome"
+✅ : successo"nome_di_cosa" 
+⚠️ : warning "nome"
+❓ : Unknown "cosa"                (come mai sei finito qui?)
+🛑 : Aborted "cosa"
+🔒 : nome "dove si blocca"
+❗ : manca "nome" 
+⏳ : attesa o caricamento "percentuale % o tempo o altro"
+🔄 : loop_nome
+💤 : timer "tempo"
+🛠️ : concludere "nome_file"
+💾 : save "nome_file"
+📂 : path "nome"
+📦 : pkg "nome"
+🚀 : launch "nome"
+🔌 : connect on "nome" 
+🔍 : find connection... or waiting node "nome" ...
+📈 : print plot "nome"
+📉 : print plot "nome"
