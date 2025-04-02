@@ -23,12 +23,43 @@ find_package(shape_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(coppelia_msgs REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
+find_package(std_msgs REQUIRED)
 
 
 add_library(test_action_server SHARED src/test_action_server.cpp)
 target_include_directories(test_action_server PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+
+
+# ACTION CLIENT 
+add_library(move_action_client_lib SHARED src/move_action_client.cpp)
+target_include_directories(move_action_client_lib PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_definitions(move_action_client_lib
+  PRIVATE "SIMPLE_ACTION_CLIENT_CPP_BUILDING_DLL")
+
+ament_target_dependencies(move_action_client_lib
+  "rclcpp"
+  "rclcpp_action"
+  "rclcpp_components"
+  "coppelia_msgs"
+  "geometry_msgs")
+
+rclcpp_components_register_node(move_action_client_lib 
+  PLUGIN "coppelia_pick_and_place::MoveActionClient" 
+  EXECUTABLE move_action_client_node
+)
+
+install(TARGETS move_action_client_lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+  
+# ACTION SERVER
 target_compile_definitions(test_action_server
   PRIVATE "TASK_SERVER_CPP_BUILDING_DLL")
 ament_target_dependencies(test_action_server
@@ -42,8 +73,30 @@ rclcpp_components_register_node(test_action_server
   EXECUTABLE test_action_server_node
 )
 
+add_library(move_action SHARED src/move_action.cpp)
+target_include_directories(move_action PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+target_compile_definitions(move_action
+  PRIVATE "MOVE_ACTION_CPP_BUILDING_DLL")
+ament_target_dependencies(move_action
+  "coppelia_msgs"
+  "rclcpp"
+  "rclcpp_action"
+  "rclcpp_components"
+  "moveit_ros_planning_interface")
+  rclcpp_components_register_node(move_action
+  PLUGIN "coppelia_pick_and_place::MoveActionServer"
+  EXECUTABLE move_action_node
+)
+
+
 # Install the library
-install(TARGETS test_action_server
+install(TARGETS 
+  test_action_server
+  move_action
+  # move_action_client
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -83,6 +136,7 @@ target_include_directories(test_mini PUBLIC include)
 
 install(TARGETS
   test_mini
+  # move_action_client
   DESTINATION lib/${PROJECT_NAME}
 )
 

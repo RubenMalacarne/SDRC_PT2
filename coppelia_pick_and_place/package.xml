@@ -5,23 +5,27 @@
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="ruben.malacarne@gmail.com">ruben</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
 
-  <depend>moveit_task_constructor_core</depend>
-  <build_depend>rclcpp</build_depend>
+  <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>rclcpp_components</depend>
-  <depend>moveit_ros_planning_interface</depend>
   <depend>rclpy</depend>
-  <build_depend>moveit_msgs</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>shape_msgs</build_depend>
-  <build_depend>geometric_shapes</build_depend>
-  <depend>coppelia_msgs</depend>
+
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>moveit_task_constructor_core</depend>
+  <depend>moveit_msgs</depend>
   
+  <depend>geometry_msgs</depend>
+  <depend>geometric_shapes</depend>
+  <depend>shape_msgs</depend>
+
+  <depend>coppelia_msgs</depend>
+
+
   <exec_depend>ros2launch</exec_depend>
   <exec_depend>python3-flask</exec_depend>
   
