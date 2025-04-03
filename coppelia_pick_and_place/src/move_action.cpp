@@ -35,6 +35,9 @@ namespace coppelia_pick_and_place
 
     private:
 
+        const float OFFSET_Z = 0.30; // [m]
+        double arr[3] = { 0.9, 0.625, 0.939 }; // Center of the box
+
         std::shared_ptr<moveit::planning_interface::MoveGroupInterface> arm_move_group_;
         std::shared_ptr<moveit::planning_interface::MoveGroupInterface> gripper_move_group_;    
         rclcpp_action::Server<coppelia_msgs::action::CoppeliaTask>::SharedPtr action_server_;
@@ -142,9 +145,24 @@ namespace coppelia_pick_and_place
                 our_plan_gripper = gripper_movement();
                 break;
             case 4:
-                // 4 => avoid example
-                RCLCPP_INFO(this->get_logger(), "choice task 4 => do something else");
-                // Implementa qualcosa
+                // 4 => positive translation along Z axis
+                RCLCPP_INFO(this->get_logger(), "choice task 4 => positive translation along Z axis");
+                our_plan_arm = z_axis_translation(true);
+                break;
+            case 5:
+                // 5 => negative translation along Z axis
+                RCLCPP_INFO(this->get_logger(), "choice task 5 => negative translation along Z axis");
+                our_plan_arm = z_axis_translation(false);
+                break;
+            case 6:
+                // 6 => go above object
+                RCLCPP_INFO(this->get_logger(), "choice task 6 => go above object");
+                our_plan_arm = go_above_object();
+                break;
+            case 7:
+                // 7 => open gripper
+                RCLCPP_INFO(this->get_logger(), "choice task 7 => open gripper");
+                our_plan_gripper = open_gripper();
                 break;
             default:
                 RCLCPP_ERROR(this->get_logger(), "Invalid Task Number");
@@ -253,7 +271,7 @@ namespace coppelia_pick_and_place
             return plan;
         }
 
-        // girpper
+        // gripper
         moveit::planning_interface::MoveGroupInterface::Plan gripper_movement()
         {
             gripper_move_group_->setNamedTarget("gripper_close");
@@ -269,6 +287,104 @@ namespace coppelia_pick_and_place
             }
             return gripper_plan;
         }
+    
+        // Translate along Z axis - up or down
+        moveit::planning_interface::MoveGroupInterface::Plan z_axis_translation(bool up){
+
+            moveit::planning_interface::MoveGroupInterface::Plan output_plan;
+
+            geometry_msgs::msg::Pose current_pose = arm_move_group_->getCurrentPose().pose;
+            std::vector<geometry_msgs::msg::Pose> z_traslation_waypoints;
+            geometry_msgs::msg::Pose pose_z_traslated  = current_pose;
+
+            if (up){
+                pose_z_traslated.position.z += OFFSET_Z;
+            } else {
+                pose_z_traslated.position.z -= OFFSET_Z;
+            }
+            
+            z_traslation_waypoints.push_back(pose_z_traslated);
+
+            moveit_msgs::msg::RobotTrajectory trajectory_z_traslation;
+            const double jump_threshold = 0.0;
+            const double eef_step = 0.01;
+
+            double fraction = arm_move_group_->computeCartesianPath(
+                z_traslation_waypoints,
+                eef_step,
+                jump_threshold,
+                trajectory_z_traslation
+            );
+
+            if (fraction > 0.0)
+            {
+                RCLCPP_INFO(this->get_logger(), "✅ Cartesian path planned successfully (fraction: %f)", fraction);
+                output_plan.trajectory_ = trajectory_z_traslation;
+            }
+            else
+            {
+                RCLCPP_WARN(this->get_logger(), "⚠️Failed to compute Cartesian path.");
+                output_plan.trajectory_ = moveit_msgs::msg::RobotTrajectory();
+            }
+
+            return output_plan;           
+        }
+    
+        // Move Above Object
+        moveit::planning_interface::MoveGroupInterface::Plan go_above_object(){
+            moveit::planning_interface::MoveGroupInterface::Plan output_plan;
+
+            geometry_msgs::msg::Pose current_pose = arm_move_group_->getCurrentPose().pose;
+            std::vector<geometry_msgs::msg::Pose> waypoints;
+            geometry_msgs::msg::Pose target_pose  = current_pose;
+
+            target_pose.position.x = arr[0];
+            target_pose.position.y = arr[1];
+
+            waypoints.push_back(target_pose);
+
+            moveit_msgs::msg::RobotTrajectory trajectory;
+            const double jump_threshold = 0.0;
+            const double eef_step = 0.01;
+
+            double fraction = arm_move_group_->computeCartesianPath(
+                waypoints,
+                eef_step,
+                jump_threshold,
+                trajectory
+            );
+
+            if (fraction > 0.0)
+            {
+                RCLCPP_INFO(this->get_logger(), "✅ Cartesian path planned successfully (fraction: %f)", fraction);
+                output_plan.trajectory_ = trajectory;
+            }
+            else
+            {
+                RCLCPP_WARN(this->get_logger(), "⚠️Failed to compute Cartesian path.");
+                output_plan.trajectory_ = moveit_msgs::msg::RobotTrajectory();
+            }
+
+            return output_plan;   
+        }
+    
+        // Open Gripper
+        moveit::planning_interface::MoveGroupInterface::Plan open_gripper()
+        {
+            gripper_move_group_->setNamedTarget("gripper_open");
+            moveit::planning_interface::MoveGroupInterface::Plan gripper_plan;
+            bool success = (gripper_move_group_->plan(gripper_plan) == moveit::core::MoveItErrorCode::SUCCESS);
+            if (success)
+            {
+                RCLCPP_INFO(LOGGER, "✅🤲 Gripper opened successfully.");
+            }
+            else
+            {
+                RCLCPP_WARN(LOGGER, "⚠️ Failed to plan motion for gripper.");
+            }
+            return gripper_plan;
+        }
+    
     };
 } // namespace coppelia_pick_and_place
 
