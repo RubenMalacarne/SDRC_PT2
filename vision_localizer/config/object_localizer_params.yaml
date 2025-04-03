@@ -1,0 +1,11 @@
+object_localizer:
+  ros__parameters:
+    camera_fov_x_deg: 60.0
+    camera_fov_y_deg: 60.0
+    camera_resolution_x: 512.0 # [px]
+    camera_resolution_y: 512.0 # [px]
+    object_dimension_x: 0.05
+    object_dimension_y: 0.05
+    object_dimension_z: 0.15
+    topic_rgb_image: /coppelia_camera/rgb # (default: /camera/rgb)
+    topic_depth_image: /coppelia_camera/depth # (default: /camera/depth)
