@@ -150,20 +150,26 @@ namespace coppelia_pick_and_place
                 our_plan_arm = z_axis_translation(true);
                 break;
             case 5:
-                // 5 => negative translation along Z axis
-                RCLCPP_INFO(this->get_logger(), "choice task 5 => negative translation along Z axis");
-                our_plan_arm = z_axis_translation(false);
-                break;
-            case 6:
-                // 6 => go above object
-                RCLCPP_INFO(this->get_logger(), "choice task 6 => go above object");
+                // 5 => go above object
+                RCLCPP_INFO(this->get_logger(), "choice task 5 => go above object");
                 our_plan_arm = go_above_object();
                 break;
-            case 7:
-                // 7 => open gripper
-                RCLCPP_INFO(this->get_logger(), "choice task 7 => open gripper");
+            case 6:
+                // 6 => open gripper
+                RCLCPP_INFO(this->get_logger(), "choice task 6 => open gripper");
                 our_plan_gripper = open_gripper();
                 break;
+            case 7:
+                // 7 => negative translation along Z axis
+                RCLCPP_INFO(this->get_logger(), "choice task 7 => negative translation along Z axis");
+                our_plan_arm = z_axis_translation(false);
+                break;
+            case 8:
+                // 8 => close gripper
+                RCLCPP_INFO(this->get_logger(), "choice task 8 => close gripper");
+                our_plan_gripper = close_gripper();
+                break;
+            
             default:
                 RCLCPP_ERROR(this->get_logger(), "Invalid Task Number");
                 result->success = false;
@@ -384,7 +390,20 @@ namespace coppelia_pick_and_place
             }
             return gripper_plan;
         }
-    
+        moveit::planning_interface::MoveGroupInterface::Plan close_gripper(){
+            gripper_move_group_->setNamedTarget("gripper_close");
+            moveit::planning_interface::MoveGroupInterface::Plan gripper_plan;
+            bool success = (gripper_move_group_->plan(gripper_plan) == moveit::core::MoveItErrorCode::SUCCESS);
+            if (success)
+            {
+                RCLCPP_INFO(LOGGER, "✅🤲 Gripper closed successfully.");
+            }
+            else
+            {
+                RCLCPP_WARN(LOGGER, "⚠️ Failed to plan motion for gripper.");
+            }
+            return gripper_plan;
+        }
     };
 } // namespace coppelia_pick_and_place
 

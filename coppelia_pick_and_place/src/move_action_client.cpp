@@ -25,11 +25,22 @@ public:
             return;
         }
 
-        sendGoal(1);  // <-- cambia qui il numero del task da eseguire
+        executeTasksInSequence(4, 8); //<-- QUA SI CAMBIANO LA SEQUENZA DELLE TASK
     }
 
 private:
     rclcpp_action::Client<coppelia_msgs::action::CoppeliaTask>::SharedPtr action_client_;
+
+    void executeTasksInSequence(int start_task, int end_task)
+    {
+        for (int task_number = start_task; task_number <= end_task; ++task_number)
+        {
+            RCLCPP_INFO(get_logger(), "🔄 loop pick_and_place, actual task: %d", task_number);
+            sendGoal(task_number);
+
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+        }
+    }
 
     void sendGoal(int task_number)
     {
