@@ -10,6 +10,7 @@
 #include <tf2_ros/buffer.h>
 #include <array>
 #include <vector>
+#include <vision_localizer/msg/object_info.hpp>
 
 namespace vision_localizer
 {
@@ -50,7 +51,7 @@ namespace vision_localizer
          * @param y Y coordinate in world frame.
          * @param z Z coordinate in world frame.
          */
-        void publishObjectPosition(double x, double y, double z);
+        void publishObjectInfo(double x, double y, double z);
 
         /**
          * @brief Callback for the RGB image.
@@ -79,7 +80,7 @@ namespace vision_localizer
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_subscriber_;
 
         /// Publishes the computed object 3D position.
-        rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr object_publisher_;
+        rclcpp::Publisher<vision_localizer::msg::ObjectInfo>::SharedPtr object_position_publisher_;
 
         /// Last received depth image (32FC1, meters).
         cv::Mat current_depth_image_;

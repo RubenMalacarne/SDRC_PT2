@@ -58,7 +58,7 @@ namespace vision_localizer
         }
         else
         {
-            RCLCPP_WARN(this->get_logger(), "Transform world → camera_rgbd not available after 2 seconds");
+            RCLCPP_WARN(this->get_logger(), "Transform world → camera_rgbd not available after 5 seconds");
         }
 
         // Create subscribers for RGB and depth image streams
@@ -75,8 +75,8 @@ namespace vision_localizer
             depth_topic_name, 10, std::bind(&ObjectLocalizer::depthCallback, this, std::placeholders::_1));
 
         // Publisher for 3D object position
-        object_publisher_ = this->create_publisher<geometry_msgs::msg::Point>("/object_position", 10);
-
+        object_position_publisher_ = this->create_publisher<vision_localizer::msg::ObjectInfo>("/object_info", 10);
+    
         // Declare and load object dimensions
         this->declare_parameter("object_dimension_x", 0.05);
         this->declare_parameter("object_dimension_y", 0.05);
@@ -176,7 +176,8 @@ namespace vision_localizer
         RCLCPP_INFO(this->get_logger(), "Object Position - Image Coordinates: [%.3f, %.3f, %.3f]", x_cam, y_cam, z_cam);
 
         auto world = transformCamToWorld(x_cam, y_cam, z_cam);
-        publishObjectPosition(world[0], world[1], world[2]);
+
+        publishObjectInfo(world[0], world[1], world[2]);
     }
 
     std::array<double, 3> ObjectLocalizer::transformCamToWorld(double xCam, double yCam, double zCam)
@@ -189,14 +190,17 @@ namespace vision_localizer
         return out;
     }
 
-    void ObjectLocalizer::publishObjectPosition(double x, double y, double z)
+    void ObjectLocalizer::publishObjectInfo(double x, double y, double z)
     {
-        geometry_msgs::msg::Point msg;
-        msg.x = static_cast<float>(x);
-        msg.y = static_cast<float>(y);
-        msg.z = static_cast<float>(z);
+        vision_localizer::msg::ObjectInfo msg;
+        msg.center.x = static_cast<float>(x);
+        msg.center.y = static_cast<float>(y);
+        msg.center.z = static_cast<float>(z);
+        msg.size.x = object_dimensions_[0];
+        msg.size.y = object_dimensions_[1];
+        msg.size.z = object_dimensions_[2];
 
         RCLCPP_INFO(this->get_logger(), "Object Position: [%.3f, %.3f, %.3f]", x, y, z);
-        object_publisher_->publish(msg);
+        object_position_publisher_->publish(msg);
     }
 }
