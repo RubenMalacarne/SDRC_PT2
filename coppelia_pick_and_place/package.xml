@@ -24,6 +24,7 @@
   <depend>shape_msgs</depend>
 
   <depend>coppelia_msgs</depend>
+  <depend>vision_localizer</depend>
 
 
   <exec_depend>ros2launch</exec_depend>

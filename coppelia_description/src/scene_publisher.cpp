@@ -67,7 +67,6 @@ private:
 
     // c) Aggiungi la regola: collisione permessa tra "base_link_inertia" e "table"
     acm.setEntry("base_link_inertia", "table", true);
-    acm.setEntry("box", "table", true);
 
     // d) Converti l’ACM in un messaggio e lo metti in un PlanningScene diff
     moveit_msgs::msg::PlanningScene scene_msg;
@@ -104,27 +103,6 @@ private:
 
     // Aggiungiamo il tavolo nella scena diff
     scene_msg.world.collision_objects.push_back(table);
-
-    // Esempio: aggiungiamo anche un box
-    moveit_msgs::msg::CollisionObject box;
-    box.id = "box";
-    box.header.frame_id = "world";
-    box.operation = box.ADD;
-
-    shape_msgs::msg::SolidPrimitive primitive;
-    primitive.type = primitive.BOX;
-    primitive.dimensions = {0.05, 0.05, 0.15};
-
-    geometry_msgs::msg::Pose box_pose;
-    box_pose.orientation.w = 1.0;
-    box_pose.position.x = 0.900;
-    box_pose.position.y = 0.625;
-    box_pose.position.z = 0.939;
-
-    box.primitives.push_back(primitive);
-    box.primitive_poses.push_back(box_pose);
-
-    scene_msg.world.collision_objects.push_back(box);
 
     // f) Pubblica la scena come "diff"
     planning_scene_pub_->publish(scene_msg);

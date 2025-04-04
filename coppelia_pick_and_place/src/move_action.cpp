@@ -144,32 +144,24 @@ namespace coppelia_pick_and_place
                 RCLCPP_INFO(this->get_logger(), "choice task 3 => close gripper example");
                 our_plan_gripper = gripper_movement();
                 break;
-            case 4:
-                // 4 => positive translation along Z axis
-                RCLCPP_INFO(this->get_logger(), "choice task 4 => positive translation along Z axis");
-                our_plan_arm = z_axis_translation(true);
+            case 4: 
+                // 4 => Z axis translation
+                RCLCPP_INFO(this->get_logger(), "choice task 4 => z axis translation");
+                our_plan_arm = z_axis_translation(goal_handle->get_goal()->params[0]);
                 break;
-            case 5:
-                // 5 => go above object
-                RCLCPP_INFO(this->get_logger(), "choice task 5 => go above object");
-                our_plan_arm = go_above_object();
+            case 5: 
+                // 5 => Move Above Object
+                RCLCPP_INFO(this->get_logger(), "choice task 5 => move_above_object");
+                our_plan_arm = go_above_object(
+                    goal_handle->get_goal()->params[0],
+                    goal_handle->get_goal()->params[1]
+                );
                 break;
             case 6:
-                // 6 => open gripper
-                RCLCPP_INFO(this->get_logger(), "choice task 6 => open gripper");
+                // 6 => open gripper example
+                RCLCPP_INFO(this->get_logger(), "choice task 6 => open gripper example");
                 our_plan_gripper = open_gripper();
                 break;
-            case 7:
-                // 7 => negative translation along Z axis
-                RCLCPP_INFO(this->get_logger(), "choice task 7 => negative translation along Z axis");
-                our_plan_arm = z_axis_translation(false);
-                break;
-            case 8:
-                // 8 => close gripper
-                RCLCPP_INFO(this->get_logger(), "choice task 8 => close gripper");
-                our_plan_gripper = close_gripper();
-                break;
-            
             default:
                 RCLCPP_ERROR(this->get_logger(), "Invalid Task Number");
                 result->success = false;
@@ -295,20 +287,15 @@ namespace coppelia_pick_and_place
         }
     
         // Translate along Z axis - up or down
-        moveit::planning_interface::MoveGroupInterface::Plan z_axis_translation(bool up){
+        moveit::planning_interface::MoveGroupInterface::Plan z_axis_translation(float z_position){
 
             moveit::planning_interface::MoveGroupInterface::Plan output_plan;
 
             geometry_msgs::msg::Pose current_pose = arm_move_group_->getCurrentPose().pose;
             std::vector<geometry_msgs::msg::Pose> z_traslation_waypoints;
             geometry_msgs::msg::Pose pose_z_traslated  = current_pose;
+            pose_z_traslated.position.z = z_position;
 
-            if (up){
-                pose_z_traslated.position.z += OFFSET_Z;
-            } else {
-                pose_z_traslated.position.z -= OFFSET_Z;
-            }
-            
             z_traslation_waypoints.push_back(pose_z_traslated);
 
             moveit_msgs::msg::RobotTrajectory trajectory_z_traslation;
@@ -337,15 +324,15 @@ namespace coppelia_pick_and_place
         }
     
         // Move Above Object
-        moveit::planning_interface::MoveGroupInterface::Plan go_above_object(){
+        moveit::planning_interface::MoveGroupInterface::Plan go_above_object(float x, float y){
             moveit::planning_interface::MoveGroupInterface::Plan output_plan;
 
             geometry_msgs::msg::Pose current_pose = arm_move_group_->getCurrentPose().pose;
             std::vector<geometry_msgs::msg::Pose> waypoints;
             geometry_msgs::msg::Pose target_pose  = current_pose;
 
-            target_pose.position.x = arr[0];
-            target_pose.position.y = arr[1];
+            target_pose.position.x = x;
+            target_pose.position.y = y;
 
             waypoints.push_back(target_pose);
 

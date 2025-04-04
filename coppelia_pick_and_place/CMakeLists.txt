@@ -21,6 +21,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
 find_package(coppelia_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(vision_localizer REQUIRED)
 
 # ------------------ ACTION SERVER ------------------
 add_library(test_action_server SHARED src/test_action_server.cpp)
@@ -69,6 +70,21 @@ rclcpp_components_register_node(move_action_client_lib
   EXECUTABLE move_action_client_node
 )
 
+# ------------------ SABRI ACTION CLIENT ------------------
+add_library(pick_place_client SHARED src/pick_place_client.cpp)
+target_include_directories(pick_place_client PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_definitions(pick_place_client PRIVATE "SIMPLE_ACTION_CLIENT_CPP_BUILDING_DLL")
+ament_target_dependencies(pick_place_client
+  rclcpp rclcpp_action rclcpp_components
+  coppelia_msgs geometry_msgs vision_localizer)
+
+rclcpp_components_register_node(pick_place_client
+  PLUGIN "coppelia_pick_and_place::PickPlaceClient" 
+  EXECUTABLE pick_place_client_node
+)
+
 # ------------------ ESEGUIBILI NORMALI ------------------
 add_executable(test_mini src/test_mini.cpp)
 target_include_directories(test_mini PUBLIC include)
@@ -89,6 +105,8 @@ install(TARGETS
   move_action_node
   move_action_client_lib
   move_action_client_node
+  pick_place_client
+  pick_place_client_node
   test_mini
   scena
   ARCHIVE DESTINATION lib
