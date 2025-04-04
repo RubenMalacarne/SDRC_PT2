@@ -73,53 +73,58 @@ namespace vision_localizer
          */
         std::array<double, 3> transformCamToWorld(double xCam, double yCam, double zCam);
 
-        /// Subscription to the RGB image stream.
+        /// Subscriber to the RGB image stream.
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr rgb_subscriber_;
 
-        /// Subscription to the depth image stream.
+        /// Subscriber to the depth image stream.
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_subscriber_;
 
-        /// Publishes the computed object 3D position.
+        /// Publishes the 3D position of the detected object.
         rclcpp::Publisher<vision_localizer::msg::ObjectInfo>::SharedPtr object_position_publisher_;
 
-        /// Last received depth image (32FC1, meters).
+        /// Latest received depth image (32FC1, meters).
         cv::Mat current_depth_image_;
 
-        /// Horizontal field of view (in degrees).
+        /// Horizontal field of view (degrees).
         double fov_x_deg_;
 
-        /// Vertical field of view (in degrees).
+        /// Vertical field of view (degrees).
         double fov_y_deg_;
 
-        /// Camera resolution along X axis (in pixels).
+        /// Camera resolution in X (pixels).
         double resolution_x_;
 
-        /// Camera resolution along Y axis (in pixels).
+        /// Camera resolution in Y (pixels).
         double resolution_y_;
 
-        /// Focal length along X axis (in pixels).
+        /// Focal length in X (pixels).
         double focal_x_px_;
 
-        /// Focal length along Y axis (in pixels).
+        /// Focal length in Y (pixels).
         double focal_y_px_;
 
-        /// Optical center X coordinate (in pixels).
+        /// Optical center X coordinate (pixels).
         double c_x_;
 
-        /// Optical center Y coordinate (in pixels).
+        /// Optical center Y coordinate (pixels).
         double c_y_;
 
-        /// Extrinsic transformation matrix from camera frame to world frame (3x4).
+        /// Camera-to-world extrinsic matrix (3x4).
         double extrinsics_matrix_[12];
 
-        /// Dimensions of the localized object [x, y, z] in meters.
+        /// Localized object size [x, y, z] (meters).
         std::array<double, 3> object_dimensions_;
 
-        /// Topic names
+        /// Topic name for RGB image.
         std::string rgb_topic_name_;
+
+        /// Topic name for depth image.
         std::string depth_topic_name;
 
+        /// TF buffer for transform lookup.
         std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+
+        /// TF listener for transform updates.
         std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     };
 }

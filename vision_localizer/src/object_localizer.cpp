@@ -2,26 +2,29 @@
 
 namespace vision_localizer
 {
+    // Constructor: Initializes the node and sets up parameters, TF, subscriptions, and publishers.
     ObjectLocalizer::ObjectLocalizer(const rclcpp::NodeOptions &options)
         : Node("object_localizer", options)
     {
-        // Declare and load camera parameters
+        // Declare and load camera intrinsics parameters
         this->declare_parameter("camera_fov_x_deg", 0.0);
         this->declare_parameter("camera_fov_y_deg", 0.0);
         this->declare_parameter("camera_resolution_x", 0.0);
         this->declare_parameter("camera_resolution_y", 0.0);
 
+        // Get camera parameters from parameter server
         fov_x_deg_ = this->get_parameter("camera_fov_x_deg").as_double();
         fov_y_deg_ = this->get_parameter("camera_fov_y_deg").as_double();
         resolution_x_ = this->get_parameter("camera_resolution_x").as_double();
         resolution_y_ = this->get_parameter("camera_resolution_y").as_double();
 
-        setupCameraParameters(); // Compute focal length and optical center
+        setupCameraParameters(); // Calculate focal lengths and principal point
 
-        // Obtain the transform of the image with respect to the world
+        // Initialize TF listener and buffer
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
+        // Try to retrieve the camera-to-world transform
         if (tf_buffer_->canTransform("world", "camera_rgbd", tf2::TimePointZero, tf2::durationFromSec(5.0)))
         {
             try
@@ -36,7 +39,7 @@ namespace vision_localizer
                 tf2::Quaternion quat(q.x, q.y, q.z, q.w);
                 tf2::Matrix3x3 rot_matrix(quat);
     
-                // Riempie la tua extrinsics_matrix_ come matrice 3x4 (righe concatenate)
+                // Fill extrinsic matrix (3x4)
                 for (int i = 0; i < 3; ++i)
                 {
                     extrinsics_matrix_[i * 4 + 0] = rot_matrix[i][0];
@@ -61,23 +64,25 @@ namespace vision_localizer
             RCLCPP_WARN(this->get_logger(), "Transform world → camera_rgbd not available after 5 seconds");
         }
 
-        // Create subscribers for RGB and depth image streams
+        // Declare and retrieve topic names for RGB and depth images
         this->declare_parameter("topic_rgb_image", "/camera/rgb");
         this->declare_parameter("topic_depth_image", "/camera/depth");
 
         rgb_topic_name_ = this->get_parameter("topic_rgb_image").as_string();
         depth_topic_name = this->get_parameter("topic_depth_image").as_string();
 
+        // Subscribe to RGB image topic
         rgb_subscriber_ = this->create_subscription<sensor_msgs::msg::Image>(
             rgb_topic_name_, 10, std::bind(&ObjectLocalizer::rgbCallback, this, std::placeholders::_1));
 
+        // Subscribe to depth image topic
         depth_subscriber_ = this->create_subscription<sensor_msgs::msg::Image>(
             depth_topic_name, 10, std::bind(&ObjectLocalizer::depthCallback, this, std::placeholders::_1));
 
-        // Publisher for 3D object position
+        // Create publisher for localized object info
         object_position_publisher_ = this->create_publisher<vision_localizer::msg::ObjectInfo>("/object_info", 10);
     
-        // Declare and load object dimensions
+        // Declare and load object size parameters
         this->declare_parameter("object_dimension_x", 0.05);
         this->declare_parameter("object_dimension_y", 0.05);
         this->declare_parameter("object_dimension_z", 0.05);
@@ -93,6 +98,7 @@ namespace vision_localizer
         RCLCPP_INFO(this->get_logger(), "ObjectLocalizer node started.");
     }
 
+    // Computes focal lengths and optical center from FOV and resolution
     void ObjectLocalizer::setupCameraParameters()
     {
         double fov_x_rad = fov_x_deg_ * M_PI / 180.0;
@@ -105,6 +111,7 @@ namespace vision_localizer
         c_y_ = resolution_y_ / 2.0;
     }
 
+    // Callback for processing incoming RGB images
     void ObjectLocalizer::rgbCallback(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         try
@@ -113,6 +120,8 @@ namespace vision_localizer
             cv::flip(cv_image, cv_image, 0);
             cv::cvtColor(cv_image, cv_image, cv::COLOR_RGB2BGR);
             cv::imshow("RGB Image", cv_image);
+
+            // Set mouse click callback for pixel selection
             cv::setMouseCallback("RGB Image", [](int event, int x, int y, int /*flags*/, void *userdata)
                                  {
                     auto self = static_cast<ObjectLocalizer*>(userdata);
@@ -127,6 +136,7 @@ namespace vision_localizer
         }
     }
 
+    // Callback for processing incoming depth images
     void ObjectLocalizer::depthCallback(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         try
@@ -135,6 +145,7 @@ namespace vision_localizer
             cv::flip(depth_image, depth_image, 0);
             current_depth_image_ = depth_image.clone();
 
+            // Normalize and display depth image
             cv::Mat norm, color;
             cv::normalize(depth_image, norm, 0, 255, cv::NORM_MINMAX);
             norm.convertTo(norm, CV_8UC1);
@@ -148,6 +159,7 @@ namespace vision_localizer
         }
     }
 
+    // Handles a mouse click event to extract 3D object position
     void ObjectLocalizer::processMouseClick(int x, int y)
     {
         if (current_depth_image_.empty())
@@ -169,17 +181,24 @@ namespace vision_localizer
             return;
         }
 
+        // Compute 3D point in camera coordinates
         double x_cam = (c_x_ - x) * z / focal_x_px_;
         double y_cam = (c_y_ - y) * z / focal_y_px_;
         double z_cam = z;
 
         RCLCPP_INFO(this->get_logger(), "Object Position - Image Coordinates: [%.3f, %.3f, %.3f]", x_cam, y_cam, z_cam);
 
+        // Transform to world coordinates
         auto world = transformCamToWorld(x_cam, y_cam, z_cam);
 
+        // Adjust for object height (centered)
+        world[2] = world[2] - object_dimensions_[2] / 2;
+
+        // Publish position
         publishObjectInfo(world[0], world[1], world[2]);
     }
 
+    // Converts 3D camera coordinates to world frame using extrinsics
     std::array<double, 3> ObjectLocalizer::transformCamToWorld(double xCam, double yCam, double zCam)
     {
         std::array<double, 3> out;
@@ -190,6 +209,7 @@ namespace vision_localizer
         return out;
     }
 
+    // Publishes object position and size
     void ObjectLocalizer::publishObjectInfo(double x, double y, double z)
     {
         vision_localizer::msg::ObjectInfo msg;
