@@ -62,7 +62,7 @@ ament_target_dependencies(object_localizer
   OpenCV
 )
 
-# ✨ Link messaggi custom al nodo
+# Link messaggi custom al nodo
 rosidl_target_interfaces(object_localizer
   ${PROJECT_NAME} "rosidl_typesupport_cpp"
 )

@@ -6,8 +6,18 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 from moveit_configs_utils import MoveItConfigsBuilder
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
+
+    is_sim_arg = DeclareLaunchArgument(
+        "is_sim",
+        default_value="True"
+    )
+
+    is_sim = LaunchConfiguration("is_sim")
+
     # Argomento per il livello di log
     log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -104,6 +114,7 @@ def generate_launch_description():
         executable="move_group",
         output="screen",
         parameters=[
+            {"use_sim_time": is_sim},
             corrected_robot_description,
             corrected_robot_description_semantic,
             corrected_kinematics,
@@ -126,6 +137,7 @@ def generate_launch_description():
         output="screen",
         arguments=["-d", rviz_config_path],
         parameters=[
+            {"use_sim_time": is_sim},
             corrected_robot_description,
             corrected_robot_description_semantic,
             corrected_planning_pipelines,
@@ -139,6 +151,7 @@ def generate_launch_description():
         name="scene_publisher",
         output="screen",
         parameters=[
+            {"use_sim_time": is_sim},
             corrected_robot_description,
             corrected_robot_description_semantic,
         ]
@@ -151,6 +164,7 @@ def generate_launch_description():
     #     name="move_group_interface_tutorial",
     #     output="screen",
     #     parameters=[
+    #         {"use_sim_time": True},
     #         corrected_robot_description,
     #         corrected_robot_description_semantic,
     #         corrected_planning_pipelines,
@@ -161,6 +175,7 @@ def generate_launch_description():
     # )
 
     return LaunchDescription([
+        is_sim_arg,
         log_level_arg,
         # Avvia PRIMA la simulazione
         simulation_launch,

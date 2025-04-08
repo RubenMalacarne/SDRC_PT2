@@ -5,10 +5,19 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('coppelia_description')
     urdf_file = os.path.join(pkg_share, 'urdf', 'ur5e.urdf')
+
+    is_sim_arg = DeclareLaunchArgument(
+        "is_sim",
+        default_value="True"
+    )
+
+    is_sim = LaunchConfiguration("is_sim")
 
     # Legge il file URDF
     with open(urdf_file, 'r') as file:
@@ -32,14 +41,20 @@ def generate_launch_description():
         executable='robot_state_publisher',
         name='robot_state_publisher',
         output='screen',
-        parameters=[{"robot_description": robot_description}]
+        parameters=[
+            {"robot_description": robot_description},
+            {"use_sim_time": is_sim}
+        ]
     )
 
     # Avvia il nodo controller manager (ros2_control_node) e passa il parametro robot_description
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[robot_controllers],
+        parameters=[
+            robot_controllers,
+            {"use_sim_time": is_sim}
+        ],
         output="screen",
         remappings=[
             ("~/robot_description", "/robot_description"),
@@ -77,6 +92,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        is_sim_arg,
         robot_state_publisher,
         control_node,
         joint_state_broadcaster_spawner,
