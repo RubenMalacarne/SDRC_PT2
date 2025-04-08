@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(vision_localizer)
+project(scene_management)
 
 # -------------------------------------------------------------------
 # Compiler flags
@@ -12,60 +12,46 @@ endif()
 # Find dependencies
 # -------------------------------------------------------------------
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
 find_package(interfaces REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(builtin_interfaces REQUIRED)
-find_package(cv_bridge REQUIRED)
-find_package(OpenCV REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
-
-# -------------------------------------------------------------------
-# Include paths
-# -------------------------------------------------------------------
-include_directories(
-  include
-  ${OpenCV_INCLUDE_DIRS}
-)
+find_package(moveit_core REQUIRED)
+find_package(moveit_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(moveit_ros_planning REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
 
 # -------------------------------------------------------------------
 # Executable
 # -------------------------------------------------------------------
-add_executable(object_localizer
-  src/object_localizer_main.cpp
-  src/object_localizer.cpp
+add_executable(object_spawner
+  src/object_spawner_main.cpp
+  src/object_spawner.cpp
 )
 
-ament_target_dependencies(object_localizer
+target_include_directories(object_spawner PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+
+ament_target_dependencies(object_spawner
+  ament_cmake
   interfaces
+  moveit_core
+  moveit_msgs
+  moveit_ros_planning
+  moveit_ros_planning_interface
   rclcpp
-  sensor_msgs
-  geometry_msgs
-  builtin_interfaces
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-  cv_bridge
-  OpenCV
 )
-
 
 # -------------------------------------------------------------------
 # Install
 # -------------------------------------------------------------------
-install(TARGETS object_localizer
+install(TARGETS object_spawner
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(DIRECTORY include/
   DESTINATION include/
-)
-
-install(DIRECTORY config
-  DESTINATION share/${PROJECT_NAME}
 )
 
 install(DIRECTORY launch

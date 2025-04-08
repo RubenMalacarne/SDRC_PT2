@@ -80,7 +80,7 @@ namespace vision_localizer
             depth_topic_name, 10, std::bind(&ObjectLocalizer::depthCallback, this, std::placeholders::_1));
 
         // Create publisher for localized object info
-        object_position_publisher_ = this->create_publisher<vision_localizer::msg::ObjectInfo>("/object_info", 10);
+        object_position_publisher_ = this->create_publisher<interfaces::msg::ObjectInfo>("/object_info", 10);
     
         // Declare and load object size parameters
         this->declare_parameter("object_dimension_x", 0.05);
@@ -212,7 +212,7 @@ namespace vision_localizer
     // Publishes object position and size
     void ObjectLocalizer::publishObjectInfo(double x, double y, double z)
     {
-        vision_localizer::msg::ObjectInfo msg;
+        interfaces::msg::ObjectInfo msg;
         msg.center.x = static_cast<float>(x);
         msg.center.y = static_cast<float>(y);
         msg.center.z = static_cast<float>(z);

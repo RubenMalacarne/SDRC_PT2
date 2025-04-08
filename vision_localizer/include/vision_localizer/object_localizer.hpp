@@ -2,6 +2,7 @@
 #define VISION_LOCALIZER_IMAGE_LISTENER_HPP_
 
 #include <rclcpp/rclcpp.hpp>
+#include <interfaces/msg/object_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -10,7 +11,6 @@
 #include <tf2_ros/buffer.h>
 #include <array>
 #include <vector>
-#include <vision_localizer/msg/object_info.hpp>
 
 namespace vision_localizer
 {
@@ -80,7 +80,7 @@ namespace vision_localizer
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_subscriber_;
 
         /// Publishes the 3D position of the detected object.
-        rclcpp::Publisher<vision_localizer::msg::ObjectInfo>::SharedPtr object_position_publisher_;
+        rclcpp::Publisher<interfaces::msg::ObjectInfo>::SharedPtr object_position_publisher_;
 
         /// Latest received depth image (32FC1, meters).
         cv::Mat current_depth_image_;
