@@ -1,5 +1,8 @@
-import os
+import launch
 from launch import LaunchDescription
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
+import os
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -10,31 +13,6 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
-
-    is_sim_arg = DeclareLaunchArgument(
-        "is_sim",
-        default_value="True"
-    )
-
-    is_sim = LaunchConfiguration("is_sim")
-
-    # Argomento per il livello di log
-    log_level_arg = DeclareLaunchArgument(
-        "log_level",
-        default_value="INFO",
-        description="Livello di log (DEBUG, INFO, WARN, ERROR)"
-    )
-
-    # Includi il launch file della simulazione (coppelia_controller)
-    simulation_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory('coppelia_controller'),
-                'launch',
-                'coppelia_demo.launch.py'
-            )
-        )
-    )
 
     # Crea la configurazione MoveIt (usando MoveItConfigsBuilder, come nel tuo codice)
     moveit_config = (
@@ -108,80 +86,40 @@ def generate_launch_description():
 
     #######################################################
 
-    # move_group node
-    move_group_node = Node(
-        package="moveit_ros_move_group",
-        executable="move_group",
-        output="screen",
-        parameters=[
-            {"use_sim_time": is_sim},
-            corrected_robot_description,
-            corrected_robot_description_semantic,
-            corrected_kinematics,
-            corrected_joint_limits,
-            corrected_planning_pipelines,
-            corrected_trajectory_execution,
+    container = ComposableNodeContainer(
+        name='scene_management_container',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container_mt',  # usa il container multithreaded
+        composable_node_descriptions=[
+            ComposableNode(
+                package='cr_scene_management',
+                plugin='cr::scene_management::StaticScenePublisher',
+                name='static_scene_publisher',
+                    parameters=[
+                        corrected_robot_description,
+                        corrected_robot_description_semantic,
+                        corrected_kinematics,
+                        corrected_joint_limits,
+                        corrected_planning_pipelines,
+                        corrected_trajectory_execution
+                    ]
+            ),
+            ComposableNode(
+                package='cr_scene_management',
+                plugin='cr::scene_management::PlanningSceneModifier',
+                name='planning_scene_modifier',
+                    parameters=[
+                        corrected_robot_description,
+                        corrected_robot_description_semantic,
+                        corrected_kinematics,
+                        corrected_joint_limits,
+                        corrected_planning_pipelines,
+                        corrected_trajectory_execution
+                    ]
+            )
         ],
+        output='screen'
     )
 
-    # RViz + plugin MoveIt
-    rviz_config_path = os.path.join(
-        get_package_share_directory('coppelia_moveit'),
-        "config",
-        "moveit.rviz"
-    )
-    rviz_node = Node(
-        package="rviz2",
-        executable="rviz2",
-        name="rviz2",
-        output="screen",
-        arguments=["-d", rviz_config_path],
-        parameters=[
-            {"use_sim_time": is_sim},
-            corrected_robot_description,
-            corrected_robot_description_semantic,
-            corrected_planning_pipelines,
-            corrected_kinematics,
-        ]
-    )
-    
-    scene_node = Node(
-        package="coppelia_description",
-        executable="scene_publisher",
-        name="scene_publisher",
-        output="screen",
-        parameters=[
-            {"use_sim_time": is_sim},
-            corrected_robot_description,
-            corrected_robot_description_semantic,
-        ]
-        
-    )
-    
-    # move_group_interface_node = Node(
-    #     package="coppelia_pick_and_place",
-    #     executable="test_mini",
-    #     name="move_group_interface_tutorial",
-    #     output="screen",
-    #     parameters=[
-    #         {"use_sim_time": True},
-    #         corrected_robot_description,
-    #         corrected_robot_description_semantic,
-    #         corrected_planning_pipelines,
-    #         corrected_kinematics,
-    #         corrected_joint_limits,
-    #         corrected_trajectory_execution,
-    #     ],
-    # )
-
-    return LaunchDescription([
-        is_sim_arg,
-        log_level_arg,
-        # Avvia PRIMA la simulazione
-        simulation_launch,
-        # Poi avvia move_group e RViz
-        move_group_node,
-        #scene_node,
-        rviz_node,
-        # move_group_interface_node
-    ])
+    return LaunchDescription([container])

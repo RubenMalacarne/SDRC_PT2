@@ -213,6 +213,7 @@ namespace vision_localizer
     void ObjectLocalizer::publishObjectInfo(double x, double y, double z)
     {
         interfaces::msg::ObjectInfo msg;
+        msg.id = "object";
         msg.center.x = static_cast<float>(x);
         msg.center.y = static_cast<float>(y);
         msg.center.z = static_cast<float>(z);

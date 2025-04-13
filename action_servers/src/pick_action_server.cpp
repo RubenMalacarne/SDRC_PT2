@@ -26,11 +26,14 @@ namespace action_servers
         // Action Server
         action_server_ = rclcpp_action::create_server<Pick>(
             this,
-            "pick_action",
+            "cr/pick_action",
             std::bind(&PickActionServer::handle_goal, this, _1, _2),
             std::bind(&PickActionServer::handle_cancel, this, _1),
             std::bind(&PickActionServer::handle_accepted, this, _1)
         );
+
+        // Allow Collision Client
+        allow_collision_client_ = this->create_client<interfaces::srv::AllowCollision>("/allow_collision");
     }
 
     rclcpp_action::GoalResponse PickActionServer::handle_goal(
@@ -82,14 +85,6 @@ namespace action_servers
         feedback->feedback_msg = "Planning move above object...";
         goal_handle->publish_feedback(feedback);
 
-        // if(!move_above_object(object_info))
-        // {
-        //     result->success = false;
-        //     result->result_msg = "Failed to move above object.";
-        //     goal_handle->abort(result);
-        //     return;
-        // } 
-
         if(!reach_pre_grasp_height(object_info))
         {
             result->success = false;
@@ -126,7 +121,7 @@ namespace action_servers
         feedback->feedback_msg = "Closing gripper...";
         goal_handle->publish_feedback(feedback);
 
-        if(!close_gripper())
+        if(!pick_object())
         {
             result->success = false;
             result->result_msg = "Failed to close gripper.";
@@ -252,23 +247,6 @@ namespace action_servers
         return arm_group_->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     }   
 
-    bool PickActionServer::move_above_object(const interfaces::msg::ObjectInfo &object_info)
-    {
-        geometry_msgs::msg::PoseStamped target_pose;
-        target_pose.header.frame_id = "world";
-        target_pose.pose.position.x = object_info.center.x;
-        target_pose.pose.position.y = object_info.center.y;
-        target_pose.pose.position.z = object_info.center.z + pre_approach_distance_;
-        target_pose.pose.orientation.w = 1.0; 
-
-        arm_group_->setPoseTarget(target_pose);
-        moveit::planning_interface::MoveGroupInterface::Plan plan;
-    
-        if (arm_group_->plan(plan) != moveit::core::MoveItErrorCode::SUCCESS)
-            return false;
-        return arm_group_->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
-    }
-
     bool PickActionServer::approach_object(const interfaces::msg::ObjectInfo &object_info)
     {
         geometry_msgs::msg::Pose start_pose = arm_group_->getCurrentPose().pose;
@@ -295,7 +273,41 @@ namespace action_servers
         return arm_group_->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     }
 
-    bool PickActionServer::close_gripper(){
+    bool PickActionServer::pick_object(){
+
+        // Consentiamo la collisione tra il gripper e l'oggetto
+        auto request = std::make_shared<interfaces::srv::AllowCollision::Request>();
+        request->object_id = "object";
+        request->is_allowed = true;
+
+        // Aspetta che il service sia disponibile
+        while (!allow_collision_client_->wait_for_service(std::chrono::seconds(1))) {
+            if (!rclcpp::ok()) {
+                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
+                return false;
+            }
+            RCLCPP_WARN(this->get_logger(), "Service not available, waiting again...");
+        }
+
+        // Chiama il service in async
+        auto future = allow_collision_client_->async_send_request(request);
+
+        // ⚠️ Usa un executor temporaneo locale per aspettare la risposta
+        rclcpp::executors::SingleThreadedExecutor local_exec;
+        local_exec.add_node(this->get_node_base_interface());
+
+        if (local_exec.spin_until_future_complete(future) == rclcpp::FutureReturnCode::SUCCESS)
+        {
+            RCLCPP_INFO(this->get_logger(), "Collision allowed successfully.");
+            // puoi anche controllare `future.get()->success` se la tua risposta lo prevede
+        }
+        else
+        {
+            RCLCPP_ERROR(this->get_logger(), "Failed to call service allow_collision.");
+            return false;
+        }
+
+
         gripper_group_->setNamedTarget("gripper_close");
         moveit::planning_interface::MoveGroupInterface::Plan plan;
         if(gripper_group_->plan(plan) != moveit::core::MoveItErrorCode::SUCCESS)
