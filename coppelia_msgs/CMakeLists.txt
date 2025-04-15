@@ -20,7 +20,17 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/CoppeliaTask.action"
-  DEPENDENCIES builtin_interfaces geometry_msgs
+  "msg/DetectedSurfaces.msg"
+  "msg/DetectedObjects.msg"
+  "msg/InferenceResult.msg"
+  "msg/Yolov8Inference.msg"
+  "msg/PoseKeypoint.msg"
+  "msg/PoseResult.msg"
+  "msg/SegmentationResult.msg"
+  "msg/Yolov8Segmentation.msg"
+  "msg/ObjectDetectionBox.msg"
+  "msg/ObjectDetectionResult.msg"
+  DEPENDENCIES builtin_interfaces geometry_msgs std_msgs
 
 )
 ament_package()

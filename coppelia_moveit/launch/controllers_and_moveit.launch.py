@@ -144,7 +144,6 @@ def generate_launch_description():
         ]
         
     )
-    
     # move_group_interface_node = Node(
     #     package="coppelia_pick_and_place",
     #     executable="test_mini",
@@ -159,6 +158,7 @@ def generate_launch_description():
     #         corrected_trajectory_execution,
     #     ],
     # )
+
 
     return LaunchDescription([
         log_level_arg,
