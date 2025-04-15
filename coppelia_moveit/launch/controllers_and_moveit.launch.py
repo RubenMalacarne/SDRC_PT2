@@ -25,6 +25,8 @@ def generate_launch_description():
         description="Livello di log (DEBUG, INFO, WARN, ERROR)"
     )
 
+    log_level = LaunchConfiguration("log_level")
+
     # Includi il launch file della simulazione (coppelia_controller)
     simulation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -113,6 +115,7 @@ def generate_launch_description():
         package="moveit_ros_move_group",
         executable="move_group",
         output="screen",
+        arguments=['--ros-args', '--log-level', log_level],
         parameters=[
             {"use_sim_time": is_sim},
             corrected_robot_description,

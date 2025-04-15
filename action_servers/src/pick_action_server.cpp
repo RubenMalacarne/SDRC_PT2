@@ -289,24 +289,25 @@ namespace action_servers
             RCLCPP_WARN(this->get_logger(), "Service not available, waiting again...");
         }
 
-        // Chiama il service in async
+        // // Chiama il service in async
         auto future = allow_collision_client_->async_send_request(request);
 
-        // ⚠️ Usa un executor temporaneo locale per aspettare la risposta
-        rclcpp::executors::SingleThreadedExecutor local_exec;
-        local_exec.add_node(this->get_node_base_interface());
+        // // ⚠️ Usa un executor temporaneo locale per aspettare la risposta
+        // rclcpp::executors::SingleThreadedExecutor local_exec;
+        // local_exec.add_node(this->get_node_base_interface());
 
-        if (local_exec.spin_until_future_complete(future) == rclcpp::FutureReturnCode::SUCCESS)
-        {
-            RCLCPP_INFO(this->get_logger(), "Collision allowed successfully.");
-            // puoi anche controllare `future.get()->success` se la tua risposta lo prevede
-        }
-        else
-        {
-            RCLCPP_ERROR(this->get_logger(), "Failed to call service allow_collision.");
-            return false;
-        }
+        // if (local_exec.spin_until_future_complete(future) == rclcpp::FutureReturnCode::SUCCESS)
+        // {
+        //     RCLCPP_INFO(this->get_logger(), "Collision allowed successfully.");
+        //     // puoi anche controllare `future.get()->success` se la tua risposta lo prevede
+        // }
+        // else
+        // {
+        //     RCLCPP_ERROR(this->get_logger(), "Failed to call service allow_collision.");
+        //     return false;
+        // }
 
+        std::this_thread::sleep_for(std::chrono::seconds(5));
 
         gripper_group_->setNamedTarget("gripper_close");
         moveit::planning_interface::MoveGroupInterface::Plan plan;

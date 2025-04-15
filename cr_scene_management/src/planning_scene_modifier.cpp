@@ -73,47 +73,59 @@ namespace scene_management {
     {
         auto& manager = cr::scene_management::SceneManager::instance(shared_from_this());
         auto psm = manager.getPlanningSceneMonitor();
-
-        if (!psm || !psm->getPlanningScene()) {
-            RCLCPP_ERROR(get_logger(), "PlanningSceneMonitor non disponibile!");
+    
+        if (!psm) {
+            RCLCPP_ERROR(get_logger(), "[allowCollision] PlanningSceneMonitor è nullo.");
             return;
         }
-
-        // Creiamo un lock in scrittura sulla planning scene
+    
+        if (!psm->getPlanningScene()) {
+            RCLCPP_ERROR(get_logger(), "[allowCollision] PlanningScene non disponibile!");
+            return;
+        }
+    
+        RCLCPP_DEBUG(get_logger(), "[allowCollision] PlanningSceneMonitor e PlanningScene trovati. Procedo con la modifica dell'ACM.");
+    
+        // Lock di scrittura
         planning_scene_monitor::LockedPlanningSceneRW locked_scene(psm);
-        collision_detection::AllowedCollisionMatrix& acm =
-            locked_scene->getAllowedCollisionMatrixNonConst();
-
+        collision_detection::AllowedCollisionMatrix& acm = locked_scene->getAllowedCollisionMatrixNonConst();
+    
         std::vector<std::string> link_names = {
             "robotiq_85_base_link",
             "robotiq_85_left_knuckle_link",
             "robotiq_85_right_knuckle_link",
             "robotiq_85_left_finger_link",
             "robotiq_85_right_finger_link",
-            "robotiq_85_left_inner_knuckle_link"
+            "robotiq_85_left_inner_knuckle_link",
             "robotiq_85_right_inner_knuckle_link",
             "robotiq_85_left_finger_tip_link",
             "robotiq_85_right_finger_tip_link"
         };
-
-        for (int i = 0; i < link_names.size(); i++){
-            acm.setEntry(link_names[i], request->object_id, request->is_allowed);
+    
+        for (const auto& link : link_names) {
+            acm.setEntry(link, request->object_id, request->is_allowed);
+            RCLCPP_DEBUG(get_logger(), "[allowCollision] Set entry: [%s] <-> [%s] = %s",
+                         link.c_str(), request->object_id.c_str(),
+                         request->is_allowed ? "ALLOWED" : "NOT ALLOWED");
         }
-
+    
         moveit_msgs::msg::PlanningScene scene_msg;
         scene_msg.is_diff = true;
-
-        // 2) Copiamo la nuova ACM nel messaggio
+    
         acm.getMessage(scene_msg.allowed_collision_matrix);
-
-        // 3) Pubblicazione
+    
+        // Check if publisher is ready
+        if (!planning_scene_pub_) {
+            RCLCPP_ERROR(get_logger(), "[allowCollision] planning_scene_pub_ non inizializzato!");
+            return;
+        }
+    
         planning_scene_pub_->publish(scene_msg);
-
-        RCLCPP_INFO(get_logger(), "Collisioni tra '%s' e il gripper %s",
+        RCLCPP_INFO(get_logger(), "[allowCollision] Pubblicata nuova ACM per '%s'. Collisioni %s con i link del gripper.",
                     request->object_id.c_str(),
                     request->is_allowed ? "PERMESSE" : "VIETATE");
     }
-
+    
     void PlanningSceneModifier::attachObject(
         const std::shared_ptr<interfaces::srv::AttachObject::Request> request,
         std::shared_ptr<interfaces::srv::AttachObject::Response> response)
