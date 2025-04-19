@@ -7,6 +7,9 @@
 #include <interfaces/srv/attach_object.hpp>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
+#include <moveit_msgs/srv/apply_planning_scene.hpp>
+#include <moveit_msgs/srv/get_planning_scene.hpp>
+
 namespace cr {
 namespace scene_management {
 
@@ -17,7 +20,7 @@ namespace scene_management {
 
     private:
         // Sottoscrizione per spawn object
-        void onObjectInfoReceived(const interfaces::msg::ObjectInfo::SharedPtr object_info);
+        void spawnObject(const interfaces::msg::ObjectInfo::SharedPtr object_info);
         // Callback service per allow collision
         void allowCollision(
             const std::shared_ptr<interfaces::srv::AllowCollision::Request> request,

@@ -12,21 +12,21 @@ namespace scene_management {
     : Node("planning_scene_modifier", options)
     {
         // Publisher su "planning_scene" se vuoi inviare diff a mano
-        planning_scene_pub_ = create_publisher<moveit_msgs::msg::PlanningScene>("planning_scene", 10);
+        planning_scene_pub_ = this->create_publisher<moveit_msgs::msg::PlanningScene>("planning_scene", 10);
 
         // Subscriber su /object_info
-        object_info_sub_ = create_subscription<interfaces::msg::ObjectInfo>(
+        object_info_sub_ = this->create_subscription<interfaces::msg::ObjectInfo>(
             "/object_info", 10,
-            std::bind(&PlanningSceneModifier::onObjectInfoReceived, this, std::placeholders::_1));
+            std::bind(&PlanningSceneModifier::spawnObject, this, std::placeholders::_1));
 
         // Servizio per allow collision
-        allow_collision_srv_ = create_service<interfaces::srv::AllowCollision>(
+        allow_collision_srv_ = this->create_service<interfaces::srv::AllowCollision>(
             "/allow_collision",
             std::bind(&PlanningSceneModifier::allowCollision, this,
                         std::placeholders::_1, std::placeholders::_2));
 
         // Servizio per attach
-        attach_object_srv_ = create_service<interfaces::srv::AttachObject>(
+        attach_object_srv_ = this->create_service<interfaces::srv::AttachObject>(
             "/attach_object",
             std::bind(&PlanningSceneModifier::attachObject, this,
                         std::placeholders::_1, std::placeholders::_2));
@@ -34,20 +34,16 @@ namespace scene_management {
         RCLCPP_INFO(get_logger(), "PlanningSceneModifier avviato.");
     }
 
-    void PlanningSceneModifier::onObjectInfoReceived(const interfaces::msg::ObjectInfo::SharedPtr object_info)
+    void PlanningSceneModifier::spawnObject(const interfaces::msg::ObjectInfo::SharedPtr object_info)
     {
-        moveit_msgs::msg::AttachedCollisionObject attached_object;
-        attached_object.link_name = "tool0";
-        attached_object.object.header.frame_id = "world";
-        attached_object.object.id = object_info->id;
+        moveit_msgs::msg::CollisionObject collision_object;
+        collision_object.id = object_info->id;
+        collision_object.header.frame_id = "world";
 
         geometry_msgs::msg::Pose pose;
         pose.position.x = object_info->center.x;
         pose.position.y = object_info->center.y;
         pose.position.z = object_info->center.z;
-
-        RCLCPP_INFO(this->get_logger(), "Spawning object in [%.3f, %.3f, %.3f]",
-            object_info->center.x, object_info->center.y, object_info->center.z);
 
         shape_msgs::msg::SolidPrimitive primitive;
         primitive.type = primitive.BOX;
@@ -56,24 +52,12 @@ namespace scene_management {
         primitive.dimensions[1] = object_info->size.y;
         primitive.dimensions[2] = object_info->size.z;
 
-        attached_object.object.primitives.push_back(primitive);
-        attached_object.object.primitive_poses.push_back(pose);
-        attached_object.object.operation = attached_object.object.ADD;
+        collision_object.primitives.push_back(primitive);
+        collision_object.primitive_poses.push_back(pose);
+        collision_object.operation = collision_object.ADD;
 
-        attached_object.touch_links = std::vector<std::string>{
-            "robotiq_85_base_link",
-            "robotiq_85_left_knuckle_link",
-            "robotiq_85_right_knuckle_link",
-            "robotiq_85_left_finger_link",
-            "robotiq_85_right_finger_link",
-            "robotiq_85_left_inner_knuckle_link",
-            "robotiq_85_right_inner_knuckle_link",
-            "robotiq_85_left_finger_tip_link",
-            "robotiq_85_right_finger_tip_link"
-        };     
-        
         moveit_msgs::msg::PlanningScene planning_scene;
-        planning_scene.world.collision_objects.push_back(attached_object.object);
+        planning_scene.world.collision_objects.push_back(collision_object);
         planning_scene.is_diff = true;
         planning_scene_pub_->publish(planning_scene);
         RCLCPP_INFO(this->get_logger(), "Object spawned in the scene.");
