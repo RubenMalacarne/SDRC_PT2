@@ -21,6 +21,12 @@ def generate_launch_description():
         "pick_params.yaml"
     ])
 
+    config_path_place = PathJoinSubstitution([
+        FindPackageShare("action_servers"),
+        "config",
+        "place_params.yaml"
+    ])
+
     moveit_config = (
         MoveItConfigsBuilder(robot_name="arm_manipulator", package_name="coppelia_moveit")
         .robot_description()
@@ -42,7 +48,20 @@ def generate_launch_description():
         output='screen'
     )
 
+    place_action_server = Node(
+        package='action_servers',
+        executable='place_action_server',
+        name='place_action_server',
+        parameters=[
+            moveit_config.to_dict(),
+            config_path_place,
+            {"use_sim_time": is_sim}
+        ],
+        output='screen'
+    )
+
     return LaunchDescription([
         is_sim_arg,
-        pick_action_server
+        pick_action_server,
+        place_action_server
     ])

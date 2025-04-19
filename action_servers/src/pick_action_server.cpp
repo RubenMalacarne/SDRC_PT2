@@ -34,6 +34,7 @@ namespace action_servers
 
         // Allow Collision Client
         allow_collision_client_ = this->create_client<interfaces::srv::AllowCollision>("/allow_collision");
+        attach_object_client_ = this->create_client<interfaces::srv::AttachObject>("/attach_object");
     }
 
     rclcpp_action::GoalResponse PickActionServer::handle_goal(
@@ -121,7 +122,7 @@ namespace action_servers
         feedback->feedback_msg = "Closing gripper...";
         goal_handle->publish_feedback(feedback);
 
-        if(!pick_object())
+        if(!pick_object(object_info))
         {
             result->success = false;
             result->result_msg = "Failed to close gripper.";
@@ -129,16 +130,16 @@ namespace action_servers
             return;
         }
 
-        // feedback->percentage = 80.0;
-        // feedback->feedback_msg = "Retreating...";
-        // goal_handle->publish_feedback(feedback);
+        feedback->percentage = 80.0;
+        feedback->feedback_msg = "Retreating...";
+        goal_handle->publish_feedback(feedback);
     
-        // if(!retreat()){
-        //     result->success = false;
-        //     result->result_msg = "Failed to retreat.";
-        //     goal_handle->abort(result);
-        //     return;            
-        // }
+        if(!retreat()){
+            result->success = false;
+            result->result_msg = "Failed to retreat.";
+            goal_handle->abort(result);
+            return;            
+        }
 
         feedback->percentage = 100.0;
         feedback->feedback_msg = "Pick completed.";
@@ -273,23 +274,25 @@ namespace action_servers
         return arm_group_->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
     }
 
-    bool PickActionServer::pick_object(){
+    bool PickActionServer::pick_object(const interfaces::msg::ObjectInfo &object_info){
 
-        // Consentiamo la collisione tra il gripper e l'oggetto
+        // // Consentiamo la collisione tra il gripper e l'oggetto
         auto request = std::make_shared<interfaces::srv::AllowCollision::Request>();
         request->object_id = "object";
         request->is_allowed = true;
 
         // Aspetta che il service sia disponibile
-        while (!allow_collision_client_->wait_for_service(std::chrono::seconds(1))) {
-            if (!rclcpp::ok()) {
+        while (!allow_collision_client_->wait_for_service(std::chrono::seconds(1)))
+        {
+            if (!rclcpp::ok())
+            {
                 RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
                 return false;
             }
             RCLCPP_WARN(this->get_logger(), "Service not available, waiting again...");
         }
 
-        // // Chiama il service in async
+        // Chiama il service in async
         auto future = allow_collision_client_->async_send_request(request);
 
         // // ⚠️ Usa un executor temporaneo locale per aspettare la risposta
@@ -313,7 +316,26 @@ namespace action_servers
         moveit::planning_interface::MoveGroupInterface::Plan plan;
         if(gripper_group_->plan(plan) != moveit::core::MoveItErrorCode::SUCCESS)
             return false;
-        return gripper_group_->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+        gripper_group_->execute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
+
+        // ATTACCHIAMO NUOVAMENTE L'OGGETTO ALLA SCENA DI MOVEIT
+        // Consentiamo la collisione tra il gripper e l'oggetto
+        auto attach_request = std::make_shared<interfaces::srv::AttachObject::Request>();
+        attach_request->object_id = object_info.id;
+        attach_request->attach = true;
+
+        // Aspetta che il service sia disponibile
+        while (!attach_object_client_->wait_for_service(std::chrono::seconds(1))) {
+            if (!rclcpp::ok()) {
+                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
+                return false;
+            }
+            RCLCPP_WARN(this->get_logger(), "Service not available, waiting again...");
+        }
+
+        attach_object_client_->async_send_request(attach_request);
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        return true;
     }
 
     bool PickActionServer::retreat()

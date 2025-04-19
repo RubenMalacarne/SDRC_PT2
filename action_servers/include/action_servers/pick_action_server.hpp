@@ -7,6 +7,7 @@
 #include <interfaces/action/pick.hpp>
 #include <interfaces/msg/object_info.hpp>
 #include <interfaces/srv/allow_collision.hpp>
+#include <interfaces/srv/attach_object.hpp>
 
 namespace action_servers
 {
@@ -23,6 +24,7 @@ namespace action_servers
 
         rclcpp_action::Server<Pick>::SharedPtr action_server_;
         rclcpp::Client<interfaces::srv::AllowCollision>::SharedPtr allow_collision_client_;
+        rclcpp::Client<interfaces::srv::AttachObject>::SharedPtr attach_object_client_;
 
         std::shared_ptr<moveit::planning_interface::MoveGroupInterface> arm_group_;
         std::shared_ptr<moveit::planning_interface::MoveGroupInterface> gripper_group_;
@@ -35,12 +37,12 @@ namespace action_servers
         // Main execution logic
         void execute(const std::shared_ptr<GoalHandlePick> goal_handle);
 
-        // Helper methos
+        // Helper methdos
         bool reach_pre_grasp_height(const interfaces::msg::ObjectInfo &object_info);
         bool reach_pre_grasp(const interfaces::msg::ObjectInfo &object_info);
         bool move_above_object(const interfaces::msg::ObjectInfo &object_info);
         bool approach_object(const interfaces::msg::ObjectInfo &object_info);
-        bool pick_object();
+        bool pick_object(const interfaces::msg::ObjectInfo &object_info);
         bool retreat();
         
         double pre_approach_distance_;

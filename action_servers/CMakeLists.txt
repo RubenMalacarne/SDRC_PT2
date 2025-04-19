@@ -45,10 +45,35 @@ ament_target_dependencies(pick_action_server
   rclcpp_action
 )
 
+
+add_executable(place_action_server
+  src/place_action_server_main.cpp
+  src/place_action_server.cpp
+)
+
+target_include_directories(place_action_server PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+
+ament_target_dependencies(place_action_server
+  ament_cmake
+  tf2_geometry_msgs
+  interfaces
+  moveit_core
+  moveit_msgs
+  moveit_ros_planning_interface
+  rclcpp
+  rclcpp_action
+)
+
 # -------------------------------------------------------------------
 # Install
 # -------------------------------------------------------------------
-install(TARGETS pick_action_server
+install(TARGETS 
+  pick_action_server
+  place_action_server
   DESTINATION lib/${PROJECT_NAME}
 )
 
